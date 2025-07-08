@@ -25,4 +25,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* IA_Movement;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* IA_Attack;
 };

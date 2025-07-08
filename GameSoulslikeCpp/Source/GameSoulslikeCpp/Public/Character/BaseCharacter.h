@@ -9,6 +9,8 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UEnhenceInPutDataAsset;
+class UAttackComponent;
+class UBaseCharacterDataAsset;
 struct FInputActionValue;
 
 
@@ -21,6 +23,7 @@ public:
 	
 	ABaseCharacter();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void PostInitializeComponents() override;
 
 protected:
 	
@@ -29,6 +32,7 @@ protected:
 private:
 	void Look(const FInputActionValue& Value);
 	void Movement(const FInputActionValue& Value);
+	void AttackPressed();
 private:	
 	
 	UPROPERTY(VisibleAnywhere)
@@ -39,4 +43,10 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "CharacterData")
 	UEnhenceInPutDataAsset* EnhenceInPutData;
+
+	UPROPERTY(VisibleAnywhere)
+	UAttackComponent* AttackComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CharacterData")
+	UBaseCharacterDataAsset* BaseCharacterDataAsset;
 };

@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Data/EnhenceInPutDataAsset.h"
+#include "Componet/AttackComponent.h"
 
 // library Enhanced Input
 #include "EnhancedInputSubsystems.h"
@@ -42,6 +43,10 @@ ABaseCharacter::ABaseCharacter()
 	//GetCharacterMovement()->RotationRate.Y = 540.0f;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
 
+	//--- Attack Component ---
+	// Create the attack component
+	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
+
 }
 
 void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -61,6 +66,23 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	EnhancedInputComponent->BindAction(EnhenceInPutData->IA_Look, ETriggerEvent:: Triggered, this, &ABaseCharacter::Look);
 	//Movement
 	EnhancedInputComponent->BindAction(EnhenceInPutData->IA_Movement, ETriggerEvent::Triggered, this, &ABaseCharacter::Movement);
+	//Attack
+	EnhancedInputComponent->BindAction(EnhenceInPutData->IA_Attack, ETriggerEvent::Started, this, &ABaseCharacter::AttackPressed);
+}
+
+void ABaseCharacter::PostInitializeComponents()
+{
+	//call before all components are initialized
+	Super::PostInitializeComponents();
+	//call AttackComponent Setup function
+	// Check if the AttackComponent is valid
+	if (AttackComponent == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent is null in ABaseCharacter::PostInitializeComponents"));
+		return;
+	}
+	AttackComponent->SetUpAttackComponent(BaseCharacterDataAsset);
+
 }
 
 void ABaseCharacter::BeginPlay()
@@ -154,4 +176,17 @@ void ABaseCharacter::Movement(const FInputActionValue& Value)
 	/*why not check like obove ?
 	*Because if return early then can not move left right
 	*/
+}
+
+void ABaseCharacter::AttackPressed()
+{
+	//PlayAnimMontage(EnhenceInPutData->IA_Attack->GetAnimMontage());
+	//PlayAnimMontage(AttackAnimationMontage);
+	//Check if the attack component is valid
+	if (AttackComponent == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent is null in ABaseCharacter::AttackPressed"));
+		return;
+	}
+	AttackComponent->RequestAttack();
 }

@@ -6,6 +6,8 @@
 #include "Animation/AnimInstance.h"
 #include "BaseAnimInstance.generated.h"
 
+
+class UCharacterMovementComponent;
 /**
  * 
  */
@@ -15,7 +17,22 @@ class GAMESOULSLIKECPP_API UBaseAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 	
 public:
-	//ENGINE_API virtual void NativeInitializeAnimation() override;
+
+	virtual void NativeInitializeAnimation() override;
 	
-	//ENGINE_API virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+
+protected: 
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bCanMove = false;
+
+private:
+	UPROPERTY()
+	ACharacter* Character;
+
+	UPROPERTY()
+	UCharacterMovementComponent* CharacterMovement;
+
+	float GroundSpeed = 0.0f;
 };

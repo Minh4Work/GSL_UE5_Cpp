@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interface/AttackInterface.h"
+
+
 #include "BaseCharacter.generated.h"
 
 class USpringArmComponent;
@@ -15,7 +18,7 @@ struct FInputActionValue;
 
 
 UCLASS()
-class GAMESOULSLIKECPP_API ABaseCharacter : public ACharacter
+class GAMESOULSLIKECPP_API ABaseCharacter : public ACharacter, public IAttackInterface
 {
 	GENERATED_BODY()
 
@@ -25,6 +28,10 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void PostInitializeComponents() override;
 
+	//Attack Interface
+	virtual void I_PlayAttackMontage(UAnimMontage* AttackMontage) override;
+	virtual void I_AN_EndAttackNotify() override;
+	
 protected:
 	
 	virtual void BeginPlay() override;

@@ -85,6 +85,34 @@ void ABaseCharacter::PostInitializeComponents()
 
 }
 
+void ABaseCharacter::I_PlayAttackMontage(UAnimMontage* AttackMontage)
+{
+	// Play the attack montage for the character
+	// Check if the AttackMontage is valid
+	if (AttackMontage == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("AttackMontage is null in ABaseCharacter::I_PlayAttackMontage"));
+		return;
+	}
+	PlayAnimMontage(AttackMontage);
+}
+
+void ABaseCharacter::I_AN_EndAttackNotify()
+{
+	// This function is called when the attack animation ends
+	// It can be used to reset the attack state or trigger other actions
+	//UE_LOG(LogTemp, Warning, TEXT("Attack animation ended in ABaseCharacter::I_AN_EndAttackNotify"));
+	//IsAttacking is false so that the character can attack again
+	// Check if the AttackComponent is valid
+	if (AttackComponent == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent is null in ABaseCharacter::I_AN_EndAttackNotify"));
+		return;
+	}
+	AttackComponent->AN_EndAttackNotify();
+	
+}
+
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();

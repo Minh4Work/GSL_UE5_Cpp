@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+
 #include "AttackComponent.generated.h"
 
 class UBaseCharacterDataAsset;
+class IAttackInterface;
 class ACharacter;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -20,16 +22,27 @@ public:
 	UAttackComponent();
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	void RequestAttack();
+	
 	void SetUpAttackComponent(UBaseCharacterDataAsset* BCDA);
+	void AN_EndAttackNotify();
 
+private:
+
+	void Attack();
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 private:
+
+	//pawn address pointer has interface
+	UPROPERTY()
+	TScriptInterface<class IAttackInterface> AttackInterface;
 
 	UPROPERTY()
 	UBaseCharacterDataAsset* BaseCharacterDataAsset;
 
 	UPROPERTY();
 	ACharacter* Character;
+
+	bool bIsAttacking = false;
 };

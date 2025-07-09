@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+
 #include "BaseCharacterDataAsset.generated.h"
 
 class UAnimMontage;

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Interface/AttackInterface.h"
-
+#include "Enum/CombatState.h"
 
 #include "BaseCharacter.generated.h"
 
@@ -27,19 +27,37 @@ public:
 	ABaseCharacter();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void PostInitializeComponents() override;
+	//virtual void Tick(float DeltaSeconds) override;
 
 	//Attack Interface
 	virtual void I_PlayAttackMontage(UAnimMontage* AttackMontage) override;
 	virtual void I_AN_EndAttackNotify() override;
+	virtual void I_AN_ComboNotify() override;
+	virtual void I_ANS_TraceHitNotify() override;
+	virtual void I_ANS_BeginTraceHitNotify() override;
+
+	virtual FVector I_GetSocketLocation(const FName& SocketName) const override;
 	
 protected:
 	
 	virtual void BeginPlay() override;
 	void AddMappingContextForCharacter();
 private:
+
+	UAnimMontage* GetCorrectHitReactMontage(const FVector& AttackDirection) const;
 	void Look(const FInputActionValue& Value);
 	void Movement(const FInputActionValue& Value);
 	void AttackPressed();
+
+	//event function when hit something
+	UFUNCTION()
+	void HandleHitSomething(const FHitResult& HitResult);
+
+	UFUNCTION()
+	void HandleTakePointDamage(AActor* DamagedActor, float Damage, 
+		class AController* InstigatedBy,FVector HitLocation,
+		class UPrimitiveComponent* FHitComponent, FName BoneName, 
+		FVector ShotFromDirection, const class UDamageType* DameType, AActor* DamageCauser);
 private:	
 	
 	UPROPERTY(VisibleAnywhere)
@@ -56,4 +74,13 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "CharacterData")
 	UBaseCharacterDataAsset* BaseCharacterDataAsset;
+	
+	
+	EStatsCombat StatsCombat = EStatsCombat::Ready;
+//Get & set
+public:
+
+	FORCEINLINE
+	EStatsCombat GetStatsCombat() const { return StatsCombat; }
 };
+

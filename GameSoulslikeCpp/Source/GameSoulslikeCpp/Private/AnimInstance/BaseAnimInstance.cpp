@@ -4,20 +4,24 @@
 #include "AnimInstance/BaseAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Character/BaseCharacter.h"
+#include "Enum/CombatState.h"
+
+//Kismet Library
 #include "Kismet/KismetMathLibrary.h"
 
 void UBaseAnimInstance::NativeInitializeAnimation()
 {
 	//Character Movement Component
 	//Pawn cast to ACharacter
-	Character = Cast<ACharacter> (TryGetPawnOwner());
+	BaseCharacter = Cast<ABaseCharacter>(TryGetPawnOwner());
 	//Check if the character is valid
-	if (Character == nullptr)
+	if (BaseCharacter == nullptr)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("Character is null in UBaseAnimInstance::NativeInitializeAnimation"));
 		return;
 	}
-	CharacterMovement = Character->GetCharacterMovement();
+	CharacterMovement = BaseCharacter->GetCharacterMovement();
 }
 
 void UBaseAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -25,7 +29,7 @@ void UBaseAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	
 	//Need movement component to get the velocity
 	//check if the character movement component is valid
-	if(CharacterMovement == nullptr)
+	if(CharacterMovement == nullptr || BaseCharacter == nullptr)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("CharacterMovement is null in UBaseAnimInstance::NativeUpdateAnimation"));
 		return;
@@ -36,4 +40,5 @@ void UBaseAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	
 	//Can Move
 	bCanMove = GroundSpeed > 0.0f;
+	bCanBlendLowerUpper = GroundSpeed > 0.0f && BaseCharacter->GetStatsCombat() != EStatsCombat::Beaten;	
 }

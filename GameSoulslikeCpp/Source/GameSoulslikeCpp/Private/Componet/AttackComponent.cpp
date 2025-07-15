@@ -4,6 +4,7 @@
 #include "Componet/AttackComponent.h"
 #include "GameFramework/Character.h"
 #include "Data/BaseCharacterDataAsset.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Interface/AttackInterface.h"
 
 UAttackComponent::UAttackComponent()
@@ -28,14 +29,140 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::RequestAttack()
 {
+	const bool bCanAttack = bIsAttacking == false || bIsCanCombo == true;
 	//don't spam attack
-	if (bIsAttacking == true)
+	//if (bIsAttacking == true)
+	//{
+	//	return;
+	//}
+	//else {
+	//// Call the Attack function to perform the attack
+	//Attack();
+	//}
+	if (bCanAttack == true)
 	{
+		Attack();
+	}
+}
+
+void UAttackComponent::TraceHit()
+{
+	// Check if the Character is valid
+	if (BaseCharacterDataAsset == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("BaseCharacterDataAsset is null in ABaseCharacter::Tick"));
 		return;
 	}
-	// Call the Attack function to perform the attack
-	Attack();
+	//check Attack Inter Face is valid
+	if (AttackInterface== nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("GetMesh is null in ABaseCharacter::Tick"));
+		return;
+	}
+
 	
+	//Hit Results
+	TArray<FHitResult> HitResults;
+	//line trace 
+	//bool bDoHitSomeThing = UKismetSystemLibrary::LineTraceMultiForObjects(
+	//	this,
+	//	GetActorLocation(),//start location of the trace
+	//	GetActorLocation() + GetActorForwardVector() * 1000.0f,//end location of the trace 
+	//	//TArray<TEnumAsByte<EObjectTypeQuery>>{ EObjectTypeQuery::ObjectTypeQuery1 }, // Change this to your desired object type
+	//	TraceObjecttypes,//object type
+	//	false, // bTraceComplex
+	//	ActorsToIgnore, // Actors to ignore
+	//	EDrawDebugTrace::ForOneFrame, // Draw debug trace
+	//	HitResults, // Hit results
+	//	true // bIgnoreSelf
+	//);
+	//Because trace in game a sphere, not line so i change line to sphere
+	//Sphere trace
+	bool bDoHitSomeThing = UKismetSystemLibrary::SphereTraceMultiForObjects(
+		this,
+		//GetActorLocation(), // Start location of the trace
+		//GetActorLocation() + GetActorForwardVector() * 1000.0f, // End location of the trace
+		//trace in weapon
+		AttackInterface->I_GetSocketLocation(BaseCharacterDataAsset->WeaponStart), // Start location of the trace, use socket location of the weapon
+		AttackInterface->I_GetSocketLocation(BaseCharacterDataAsset->WeaponEnd), // End location of the trace, use socket location of the weapon
+		BaseCharacterDataAsset->TraceRadius, // Sphere radius,
+		BaseCharacterDataAsset->TraceObjecttypes, // Object types to trace against
+		false, // bTraceComplex
+		BaseCharacterDataAsset->ActorsToIgnore, // Actors to ignore
+		//EDrawDebugTrace::ForDuration, // Draw debug trace for the duration of the game
+		BaseCharacterDataAsset->bDebugDrawTrace ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None, // Draw debug trace if enabled in the data asset
+		HitResults, // Hit results array to fill
+		true,// bIgnoreSelf
+		FLinearColor::Green, // Color of the debug trace
+		FLinearColor::Red, // Color of the trace hit
+		BaseCharacterDataAsset->TraceDrawTime // Draw debug trace type
+	);
+	// Check if the trace hit something
+	if (bDoHitSomeThing == false)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("Line trace hit something in ABaseCharacter::Tick"));
+		return;
+	}
+	for (const FHitResult& HitResult : HitResults)
+	{
+		if (HittedActors.Contains(HitResult.GetActor())) continue;
+		HandleHitResult(HitResult);
+		HittedActors.Emplace(HitResult.GetActor());
+	}
+	//Print Count Hits
+	//FString::Printf(TEXT("Count Hits = %d"),CountHits);
+	/*if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			5.f,
+			FColor::Red,
+			FString::Printf(TEXT("Count Hits = %d"), CountHits)
+		);
+	}*/
+}
+
+void UAttackComponent::HandleHitResult(const FHitResult& HitResult)
+{
+	//UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitResult.GetActor()->GetName());
+	// Do something with the hit result
+	// For example, you can print the name of the hit actor
+	//if (HitResult.GetActor())
+	//{
+	//UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitResult.GetActor()->GetName());
+	//}
+	//Print the bone name of the hit result
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			5.f,
+			FColor::Red,
+			//HitResult.GetActor()->GetName()
+			HitResult.BoneName.ToString()// Print the bone name of the hit result
+		);
+		//Check if the HitSomethingDelegate is bound before executing it
+		if (HitSomethingDelegate.IsBound())
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("HitSomethingDelegate is bound in UAttackComponent::HandleHitResult"));
+			HitSomethingDelegate.Execute(HitResult); // Call the delegate with the hit result
+		}
+		else
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("HitSomethingDelegate is not bound in UAttackComponent::HandleHitResult"));
+		}
+		
+	}
+	//UKismetSystemLibrary::DrawDebugSphere(
+	//	this,
+	//	HitResult.ImpactPoint,
+	//	20.0f, // Sphere radius
+	//	12, // Segments
+	//	FColor::Red, // Color
+	//	false, // Persistent
+	//	5.0f // Life time
+	//);
+	//CountHits++;
 }
 
 void UAttackComponent::Attack()
@@ -58,6 +185,7 @@ void UAttackComponent::Attack()
 	}
 	AttackInterface->I_PlayAttackMontage(BaseCharacterDataAsset->AttackAnimationMontage);
 	bIsAttacking = true;
+	bIsCanCombo = false;
 }
 
 void UAttackComponent::SetUpAttackComponent(UBaseCharacterDataAsset* BCDA)
@@ -77,10 +205,23 @@ void UAttackComponent::SetUpAttackComponent(UBaseCharacterDataAsset* BCDA)
 void UAttackComponent::AN_EndAttackNotify()
 {
 	bIsAttacking = false;
+	bIsCanCombo = false;
 }
 
+void UAttackComponent::AN_ComboNotify()
+{
+	//bIsAttacking = true;
+	bIsCanCombo = true;
+}
 
-
+void UAttackComponent::SetUpTraceHit()
+{
+	//riset hitted actor
+	HittedActors.Empty();
+	// can't 2 hit in 1 actor, 1 actor only 1 hit
+	//reset count hits
+	//CountHits = 0;
+}
 
 // Called every frame
 //void UAttackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

@@ -7,6 +7,8 @@
 
 #include "AttackComponent.generated.h"
 
+DECLARE_DYNAMIC_DELEGATE_OneParam(FHitSomethingDelegate, const FHitResult&, HitResult);
+
 class UBaseCharacterDataAsset;
 class IAttackInterface;
 class ACharacter;
@@ -22,16 +24,26 @@ public:
 	UAttackComponent();
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	void RequestAttack();
+	void TraceHit();
+
+	
 	
 	void SetUpAttackComponent(UBaseCharacterDataAsset* BCDA);
 	void AN_EndAttackNotify();
+	void AN_ComboNotify();
+	void SetUpTraceHit();
 
 private:
 
 	void Attack();
+	void HandleHitResult(const FHitResult& HitResult);
+
+public:
+	FHitSomethingDelegate HitSomethingDelegate;
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
 private:
 
 	//pawn address pointer has interface
@@ -45,4 +57,9 @@ private:
 	ACharacter* Character;
 
 	bool bIsAttacking = false;
+	bool bIsCanCombo = false;
+	
+	TArray<AActor*> HittedActors;
+	// Count hits
+	//int CountHits = 0;
 };

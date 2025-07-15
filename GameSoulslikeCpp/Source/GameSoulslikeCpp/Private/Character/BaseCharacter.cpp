@@ -7,6 +7,12 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Data/EnhenceInPutDataAsset.h"
 #include "Componet/AttackComponent.h"
+#include "Data/BaseCharacterDataAsset.h"
+
+//Library kismet
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // library Enhanced Input
 #include "EnhancedInputSubsystems.h"
@@ -81,10 +87,23 @@ void ABaseCharacter::PostInitializeComponents()
 		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent is null in ABaseCharacter::PostInitializeComponents"));
 		return;
 	}
+	AttackComponent->HitSomethingDelegate.BindDynamic(this, &ABaseCharacter::HandleHitSomething);
 	AttackComponent->SetUpAttackComponent(BaseCharacterDataAsset);
 
 }
 
+void ABaseCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	OnTakePointDamage.AddDynamic(this,&ABaseCharacter::HandleTakePointDamage );
+}
+
+//void ABaseCharacter::Tick(float DeltaSeconds)
+//{
+//	Super::Tick(DeltaSeconds);
+//}
+
+#pragma region Attack Interface Functions
 void ABaseCharacter::I_PlayAttackMontage(UAnimMontage* AttackMontage)
 {
 	// Play the attack montage for the character
@@ -113,11 +132,57 @@ void ABaseCharacter::I_AN_EndAttackNotify()
 	
 }
 
-void ABaseCharacter::BeginPlay()
+void ABaseCharacter::I_AN_ComboNotify()
 {
-	Super::BeginPlay();
+	// This function is called when the combo animation is triggered
+	// It can be used to reset the combo state or trigger other actions
+	//UE_LOG(LogTemp, Warning, TEXT("Combo animation triggered in ABaseCharacter::I_AN_ComboNotify"));
+	// Check if the AttackComponent is valid
+	if (AttackComponent == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent is null in ABaseCharacter::I_AN_ComboNotify"));
+		return;
+	}
+	AttackComponent->AN_ComboNotify();
 }
 
+void ABaseCharacter::I_ANS_BeginTraceHitNotify()
+{
+	// This function is called when the trace hit animation begins
+	// It can be used to reset the trace hit state or trigger other actions
+	//UE_LOG(LogTemp, Warning, TEXT("Trace hit animation began in ABaseCharacter::I_ANS_BeginTraceHitNotify"));
+	// Check if the AttackComponent is valid
+	if (AttackComponent == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent is null in ABaseCharacter::I_ANS_BeginTraceHitNotify"));
+		return;
+	}
+	AttackComponent->SetUpTraceHit();
+}
+
+void ABaseCharacter::I_ANS_TraceHitNotify()
+{
+	// Check if the AttackComponent is valid
+	if (AttackComponent == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent is null in ABaseCharacter::Tick"));
+		return;
+	}
+	AttackComponent->TraceHit();
+}
+
+FVector ABaseCharacter::I_GetSocketLocation(const FName& SocketName) const
+{
+	// Check if the GetMesh is valid
+	if (GetMesh() == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("GetMesh is null in ABaseCharacter::I_GetSocketLocation"));
+		return FVector();
+	}
+	return GetMesh()-> GetSocketLocation(SocketName);
+	//return FVector();
+}
+#pragma endregion
 void ABaseCharacter::AddMappingContextForCharacter()
 {
 	// Add mapping context to the player controller
@@ -149,8 +214,6 @@ void ABaseCharacter::AddMappingContextForCharacter()
 
 	Subsystem->AddMappingContext(EnhenceInPutData->InputMappingContext, 0);
 }
-
-
 
 void ABaseCharacter::Look(const FInputActionValue& Value)
 {
@@ -217,4 +280,132 @@ void ABaseCharacter::AttackPressed()
 		return;
 	}
 	AttackComponent->RequestAttack();
+}
+
+void ABaseCharacter::HandleHitSomething(const FHitResult& HitResult)
+{
+	// Check if the Base Character is valid
+	if (BaseCharacterDataAsset == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("BaseCharacterDataAsset is null in ABaseCharacter::HandleHitSomething"));
+		return;
+	}
+	//notify the attack component that hit something
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.f,
+			FColor::Red,
+			////HitResult.GetActor()->GetName()
+			//HitResult.BoneName.ToString()// Print the bone name of the hit result
+			TEXT("Hit Something")
+		);
+	}
+
+	// Check if the hit actor is valid
+	if (HitResult.GetActor() == nullptr)
+	{
+		return;
+	}
+	 const auto AttackDirection = UKismetMathLibrary::GetDirectionUnitVector(
+		GetActorLocation(),
+		HitResult.GetActor()->GetActorLocation()
+	);
+	UGameplayStatics::ApplyPointDamage(
+		HitResult.GetActor(),// Actor hit
+		BaseCharacterDataAsset->AttackDamage,//dame
+		AttackDirection,// Direction of the attack
+		HitResult,//
+		GetController(),// controller
+		this,//Weapon but already mounted on the character
+		//BaseCharacterDataAsset->DamageType
+		UDamageType::StaticClass()// Damage type
+	);
+}
+
+void ABaseCharacter::HandleTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DameType, AActor* DamageCauser)
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			5.f,
+			FColor::Red,
+			//FString::Printf(TEXT("Damaged Actor: %s, Damage: %f, Bone Name: %s"), *DamagedActor->GetName(), Damage, *BoneName.ToString())
+			TEXT("Handle Take Point Damage")
+		);
+		//check if the BaseCharacterDataAsset is valid
+		if (BaseCharacterDataAsset == nullptr)
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("BaseCharacterDataAsset is null in ABaseCharacter::HandleTakePointDamage"));
+			return;
+		}
+		else {
+			
+			PlayAnimMontage(GetCorrectHitReactMontage(ShotFromDirection));
+			StatsCombat = EStatsCombat::Beaten;
+		}
+	}
+}
+
+UAnimMontage* ABaseCharacter::GetCorrectHitReactMontage(const FVector& AttackDirection) const
+{
+	//check if the BaseCharacterDataAsset is valid
+	if (BaseCharacterDataAsset == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("BaseCharacterDataAsset is null in ABaseCharacter::GetCorrectHitReactMontage"));
+		return nullptr;
+	}
+
+	//Apply Dot product to determine the direction of the attack - Back , Front
+	auto Dot = FVector::DotProduct(AttackDirection, GetActorForwardVector());
+	//test Dot
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			5.f,
+			FColor::Red,
+			FString::Printf(TEXT("Dot: %f"), Dot)
+		);
+	}
+	//Apply Cross product to determine the direction of the attack - Left , Right
+	FVector Cross = FVector::CrossProduct(AttackDirection, GetActorForwardVector());
+	//test Cross
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			5.f,
+			FColor::Red,
+			FString::Printf(TEXT("Cross: %f %f %f"), Cross.X, Cross.Y, Cross.Z)
+		);
+	}
+
+	//If Abs(Dot) < 0.5f use Cross
+	//If Dot > 1 Back
+	//If Dot < -1 Front
+	//If Cross.Z < 0 Left
+	//If Cross.Z > 0 Right 
+	//return UAnimMontage();
+
+	if (FMath::Abs(Dot) < 0.5f)
+	{
+		if (Cross.Z < 0)
+		{
+			return BaseCharacterDataAsset->HitReactAnimationMontageLeft;
+		}
+		else
+		{
+			return BaseCharacterDataAsset->HitReactAnimationMontageRight;
+		}
+	}
+	else if (Dot > 0.5f)
+	{
+		return BaseCharacterDataAsset->HitReactAnimationMontageBack;
+	}
+	else if (Dot < -0.5f)
+	{
+		return BaseCharacterDataAsset->HitReactAnimationMontageFront;
+	}
+	return nullptr;
 }

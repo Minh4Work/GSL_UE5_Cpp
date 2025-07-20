@@ -30,10 +30,14 @@ public:
 	 * function = 0 because classes that call this Interface will redefine this Interface
 	 */
 	virtual void I_PlayAttackMontage(UAnimMontage* AttackMontage) = 0;
+	virtual void I_PlayStartAttackSound() = 0;
 	virtual void I_AN_EndAttackNotify() = 0;
 	virtual void I_AN_ComboNotify() = 0;
 	virtual FVector I_GetSocketLocation(const FName& SocketName) const = 0;
 	virtual void I_ANS_TraceHitNotify() = 0;
 	virtual void I_ANS_BeginTraceHitNotify() = 0;
 
+
+	virtual void I_EnterCombat(float Health_Enemy, float MaxHealth_Enemy);
+	virtual void I_HitTarget(float Health_target, float MaxHealth_Target);
 };

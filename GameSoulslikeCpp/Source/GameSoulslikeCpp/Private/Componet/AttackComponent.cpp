@@ -4,8 +4,12 @@
 #include "Componet/AttackComponent.h"
 #include "GameFramework/Character.h"
 #include "Data/BaseCharacterDataAsset.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Interface/AttackInterface.h"
+
+
+// Library kismet
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 UAttackComponent::UAttackComponent()
 {
@@ -29,7 +33,7 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::RequestAttack()
 {
-	const bool bCanAttack = bIsAttacking == false || bIsCanCombo == true;
+	const bool bCanAttack = bIsAttacking == false || bCanCombo == true;
 	//don't spam attack
 	//if (bIsAttacking == true)
 	//{
@@ -42,6 +46,10 @@ void UAttackComponent::RequestAttack()
 	if (bCanAttack == true)
 	{
 		Attack();
+	}
+	else
+	{
+		bSavedAttack = true;
 	}
 }
 
@@ -165,6 +173,24 @@ void UAttackComponent::HandleHitResult(const FHitResult& HitResult)
 	//CountHits++;
 }
 
+UAnimMontage* UAttackComponent::GetCorrectAttackMontage()
+{
+	// Check if the BaseCharacterDataAsset is valid
+	if (BaseCharacterDataAsset == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("BaseCharacterDataAsset is null in UAttackComponent::GetCorrectAttackMontage"));
+		return nullptr;
+	}
+	// Check AttackAnimationMontages is Empty
+	if (BaseCharacterDataAsset->AttackAnimationMontages.IsEmpty())
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("AttackAnimationMontages is empty in UAttackComponent::GetCorrectAttackMontage"));
+		return nullptr;
+	}
+	return BaseCharacterDataAsset->AttackAnimationMontages[AttackIndex];
+	
+}
+
 void UAttackComponent::Attack()
 {
 	//Need Character and Animation Montage to play the attack animation
@@ -178,14 +204,20 @@ void UAttackComponent::Attack()
 
 	// Use the interface to play the attack montage
 	// Check if the AttackInterface and BaseCharacterDataAsset are valid
-	if (AttackInterface == nullptr || BaseCharacterDataAsset == nullptr)
+	if (AttackInterface == nullptr || BaseCharacterDataAsset == nullptr || GetCorrectAttackMontage() == nullptr)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("AttackInterface or Attack Animation Montage is null in UAttackComponent::RequestAttack"));
 		return;
 	}
-	AttackInterface->I_PlayAttackMontage(BaseCharacterDataAsset->AttackAnimationMontage);
-	bIsAttacking = true;
-	bIsCanCombo = false;
+	else 
+	{
+		AttackInterface->I_PlayAttackMontage(GetCorrectAttackMontage());
+		AttackInterface->I_PlayStartAttackSound();
+		bIsAttacking = true;
+		bCanCombo = false;
+		AttackIndex = (AttackIndex + 1)% BaseCharacterDataAsset->AttackAnimationMontages.Num();	
+	}
+	//sound start attack
 }
 
 void UAttackComponent::SetUpAttackComponent(UBaseCharacterDataAsset* BCDA)
@@ -205,13 +237,19 @@ void UAttackComponent::SetUpAttackComponent(UBaseCharacterDataAsset* BCDA)
 void UAttackComponent::AN_EndAttackNotify()
 {
 	bIsAttacking = false;
-	bIsCanCombo = false;
+	bCanCombo = false;
+	bSavedAttack = false;
+	AttackIndex = 0;
 }
 
 void UAttackComponent::AN_ComboNotify()
 {
 	//bIsAttacking = true;
-	bIsCanCombo = true;
+	bCanCombo = true;
+	if (bSavedAttack == true) {
+		RequestAttack();
+		bSavedAttack = false;
+	}
 }
 
 void UAttackComponent::SetUpTraceHit()

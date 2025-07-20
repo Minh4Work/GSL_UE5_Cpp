@@ -13,6 +13,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UEnhenceInPutDataAsset;
 class UAttackComponent;
+class UHealthComponent;
 class UBaseCharacterDataAsset;
 struct FInputActionValue;
 
@@ -31,6 +32,7 @@ public:
 
 	//Attack Interface
 	virtual void I_PlayAttackMontage(UAnimMontage* AttackMontage) override;
+	virtual void I_PlayStartAttackSound() override;
 	virtual void I_AN_EndAttackNotify() override;
 	virtual void I_AN_ComboNotify() override;
 	virtual void I_ANS_TraceHitNotify() override;
@@ -42,6 +44,12 @@ protected:
 	
 	virtual void BeginPlay() override;
 	void AddMappingContextForCharacter();
+	
+	UFUNCTION()
+	virtual void HandleTakePointDamage(AActor* DamagedActor, float Damage, 
+		class AController* InstigatedBy,FVector HitLocation,
+		class UPrimitiveComponent* FHitComponent, FName BoneName, 
+		FVector ShotFromDirection, const class UDamageType* DameType, AActor* DamageCauser);
 private:
 
 	UAnimMontage* GetCorrectHitReactMontage(const FVector& AttackDirection) const;
@@ -53,11 +61,14 @@ private:
 	UFUNCTION()
 	void HandleHitSomething(const FHitResult& HitResult);
 
-	UFUNCTION()
-	void HandleTakePointDamage(AActor* DamagedActor, float Damage, 
-		class AController* InstigatedBy,FVector HitLocation,
-		class UPrimitiveComponent* FHitComponent, FName BoneName, 
-		FVector ShotFromDirection, const class UDamageType* DameType, AActor* DamageCauser);
+protected:
+
+	UPROPERTY(VisibleAnywhere)
+	UAttackComponent* AttackComponent;
+
+	UPROPERTY(VisibleAnywhere)
+	UHealthComponent* HealthComponent;
+
 private:	
 	
 	UPROPERTY(VisibleAnywhere)
@@ -68,9 +79,6 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "CharacterData")
 	UEnhenceInPutDataAsset* EnhenceInPutData;
-
-	UPROPERTY(VisibleAnywhere)
-	UAttackComponent* AttackComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "CharacterData")
 	UBaseCharacterDataAsset* BaseCharacterDataAsset;

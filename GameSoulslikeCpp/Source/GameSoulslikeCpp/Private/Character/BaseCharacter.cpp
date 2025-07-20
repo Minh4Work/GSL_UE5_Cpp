@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Data/EnhenceInPutDataAsset.h"
 #include "Componet/AttackComponent.h"
+#include "Componet/HealthComponent.h"
 #include "Data/BaseCharacterDataAsset.h"
 
 //Library kismet
@@ -17,6 +18,7 @@
 // library Enhanced Input
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "Interface/AttackInterface.h"
 
 ABaseCharacter::ABaseCharacter()
 {
@@ -53,6 +55,10 @@ ABaseCharacter::ABaseCharacter()
 	// Create the attack component
 	AttackComponent = CreateDefaultSubobject<UAttackComponent>(TEXT("AttackComponent"));
 
+	//--- Health Component ---
+	// Create the health component
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
 }
 
 void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -82,14 +88,16 @@ void ABaseCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	//call AttackComponent Setup function
 	// Check if the AttackComponent is valid
-	if (AttackComponent == nullptr)
+	if (AttackComponent == nullptr || HealthComponent  == nullptr)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent is null in ABaseCharacter::PostInitializeComponents"));
+		//UE_LOG(LogTemp, Warning, TEXT("AttackComponent or HealthComponent is null in ABaseCharacter::PostInitializeComponents"));
 		return;
 	}
 	AttackComponent->HitSomethingDelegate.BindDynamic(this, &ABaseCharacter::HandleHitSomething);
+	//call attack component setup function
 	AttackComponent->SetUpAttackComponent(BaseCharacterDataAsset);
-
+	//call HealthComponent Setup function
+	HealthComponent->SetUpComponent(BaseCharacterDataAsset);
 }
 
 void ABaseCharacter::BeginPlay()
@@ -114,6 +122,22 @@ void ABaseCharacter::I_PlayAttackMontage(UAnimMontage* AttackMontage)
 		return;
 	}
 	PlayAnimMontage(AttackMontage);
+}
+
+void ABaseCharacter::I_PlayStartAttackSound()
+{
+	//check if the BaseCharacterDataAsset is valid
+	if (BaseCharacterDataAsset == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("BaseCharacterDataAsset is null in ABaseCharacter::I_PlayStartAttackSound"));
+		return;
+	}
+
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		BaseCharacterDataAsset->StartAttackSound,
+		GetActorLocation()
+	);
 }
 
 void ABaseCharacter::I_AN_EndAttackNotify()
@@ -158,6 +182,10 @@ void ABaseCharacter::I_ANS_BeginTraceHitNotify()
 		return;
 	}
 	AttackComponent->SetUpTraceHit();
+}
+
+void IAttackInterface::I_EnterCombat(float Health_Enemy, float MaxHealth_Enemy)
+{
 }
 
 void ABaseCharacter::I_ANS_TraceHitNotify()
@@ -326,26 +354,60 @@ void ABaseCharacter::HandleHitSomething(const FHitResult& HitResult)
 
 void ABaseCharacter::HandleTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DameType, AActor* DamageCauser)
 {
-	if (GEngine)
+	//if (GEngine)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		5.f,
+	//		FColor::Red,
+	//		//FString::Printf(TEXT("Damaged Actor: %s, Damage: %f, Bone Name: %s"), *DamagedActor->GetName(), Damage, *BoneName.ToString())
+	//		TEXT("Handle Take Point Damage")
+	//	);
+	//}
+	//apply damage to the health component
+	//check if the HealthComponent is valid
+	if (HealthComponent == nullptr)
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			5.f,
-			FColor::Red,
-			//FString::Printf(TEXT("Damaged Actor: %s, Damage: %f, Bone Name: %s"), *DamagedActor->GetName(), Damage, *BoneName.ToString())
-			TEXT("Handle Take Point Damage")
+		//UE_LOG(LogTemp, Warning, TEXT("HealthComponent is null in ABaseCharacter::HandleTakePointDamage"));
+		return;
+	}
+	// Update the health by damage
+	HealthComponent->UpDateHealthByDame(Damage);
+
+	// Check if the Base Character is valid
+	if (BaseCharacterDataAsset == nullptr)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("BaseCharacterDataAsset is null in ABaseCharacter::HandleTakePointDamage"));
+		return;
+	}
+	else
+	{
+		//Effect
+		UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(),
+			BaseCharacterDataAsset->HitImpactEffect,
+			HitLocation
+			//FRotator::ZeroRotator,
+			//true
 		);
-		//check if the BaseCharacterDataAsset is valid
-		if (BaseCharacterDataAsset == nullptr)
-		{
-			//UE_LOG(LogTemp, Warning, TEXT("BaseCharacterDataAsset is null in ABaseCharacter::HandleTakePointDamage"));
-			return;
-		}
-		else {
-			
-			PlayAnimMontage(GetCorrectHitReactMontage(ShotFromDirection));
-			StatsCombat = EStatsCombat::Beaten;
-		}
+
+		//Sounds
+		//impact sounds
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			BaseCharacterDataAsset->HitImpactSound,
+			HitLocation
+		);
+		//Pain sounds
+		
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			BaseCharacterDataAsset->PainSound,
+			GetActorLocation()
+		);
+		//Play Hit React Animation Montage
+		PlayAnimMontage(GetCorrectHitReactMontage(ShotFromDirection));
+		StatsCombat = EStatsCombat::Beaten;
 	}
 }
 

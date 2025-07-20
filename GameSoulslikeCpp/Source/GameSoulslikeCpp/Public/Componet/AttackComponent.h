@@ -37,6 +37,7 @@ private:
 
 	void Attack();
 	void HandleHitResult(const FHitResult& HitResult);
+	UAnimMontage* GetCorrectAttackMontage();
 
 public:
 	FHitSomethingDelegate HitSomethingDelegate;
@@ -57,7 +58,10 @@ private:
 	ACharacter* Character;
 
 	bool bIsAttacking = false;
-	bool bIsCanCombo = false;
+	bool bCanCombo = false;
+	bool bSavedAttack = false; 
+
+	int AttackIndex = 0;
 	
 	TArray<AActor*> HittedActors;
 	// Count hits

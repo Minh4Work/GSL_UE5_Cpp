@@ -8,6 +8,8 @@
 #include "BaseCharacterDataAsset.generated.h"
 
 class UAnimMontage;
+class UParticleSystem;
+class USoundBase;
 /**
  * 
  */
@@ -19,7 +21,7 @@ class GAMESOULSLIKECPP_API UBaseCharacterDataAsset : public UDataAsset
 public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Attack")
-	UAnimMontage* AttackAnimationMontage;
+	TArray<UAnimMontage*> AttackAnimationMontages;
 	
 	//---Hit React Animations---
 	UPROPERTY(EditDefaultsOnly, Category = "Hit React")
@@ -34,6 +36,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Hit React")
 	UAnimMontage* HitReactAnimationMontageRight;
 
+	//Effect 
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	UParticleSystem* HitImpactEffect;
+
+	//Sounds
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	USoundBase* HitImpactSound;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	USoundBase* PainSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	USoundBase* StartAttackSound;
 	//Trace hit
 	//object types for trace
 	UPROPERTY(EditDefaultsOnly, Category = "Trace")
@@ -58,6 +73,12 @@ public:
 	//Stats
 	UPROPERTY(EditDefaultsOnly, Category = "Stats")
 	float AttackDamage = 10.0f; // Damage dealt by the attack
+
+	UPROPERTY(EditDefaultsOnly, Category = "Stats")
+	float Health = 0.0f; // Default health value
+
+	UPROPERTY(EditDefaultsOnly, Category = "Stats")
+	float MaxHealth = 0.0f; // Maximum health value
 
 	//Debug
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")

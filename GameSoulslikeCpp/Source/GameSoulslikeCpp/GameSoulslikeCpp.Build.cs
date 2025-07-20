@@ -13,8 +13,10 @@ public class GameSoulslikeCpp : ModuleRules
 			"CoreUObject", 
 			"Engine", 
 			"InputCore", 
-			"EnhancedInput" 
-		});
+			"EnhancedInput",
+			"UMG",
+			"AIModule",	
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
